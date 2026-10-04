@@ -313,8 +313,6 @@ func isolatedAcceptanceEnv(overrides []string) ([]string, func(), error) {
 	cleanup := func() { _ = os.RemoveAll(home) }
 	values := map[string]string{
 		"CI":            firstNonEmpty(os.Getenv("CI"), "true"),
-		"GITHUB_TOKEN":  "",
-		"GH_TOKEN":      "",
 		"HOME":          home,
 		"PATH":          os.Getenv("PATH"),
 		"SCAFLD_VERIFY": "1",
@@ -328,7 +326,7 @@ func isolatedAcceptanceEnv(overrides []string) ([]string, func(), error) {
 		}
 	}
 	for _, key := range acceptanceSecretEnvKeys {
-		values[key] = ""
+		delete(values, key)
 	}
 	keys := make([]string, 0, len(values))
 	for key := range values {

@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -30,6 +31,31 @@ func TestParseTarget(t *testing.T) {
 	}
 	if opts.ReceiptPath != "receipt.json" || opts.Target != "main" || opts.MaterialRef != "head" || opts.AcceptanceRoot != "head-worktree" || !opts.MaterialOnly || !opts.CI {
 		t.Fatalf("opts = %+v", opts)
+	}
+}
+
+func TestIsolatedAcceptanceEnvOmitsCredentialVariables(t *testing.T) {
+	t.Parallel()
+	env, cleanup, err := isolatedAcceptanceEnv([]string{
+		"GITHUB_TOKEN=config-secret",
+		"GH_TOKEN=config-secret",
+		"ACTIONS_RUNTIME_TOKEN=config-secret",
+		"SCAFLD_TEST_MARKER=present",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+	for _, item := range env {
+		key, _, _ := strings.Cut(item, "=")
+		for _, secret := range acceptanceSecretEnvKeys {
+			if key == secret {
+				t.Fatalf("secret variable %s is present in acceptance environment", key)
+			}
+		}
+	}
+	if !slices.Contains(env, "SCAFLD_TEST_MARKER=present") {
+		t.Fatal("non-secret configured environment variable was lost")
 	}
 }
 
